@@ -1,0 +1,161 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Shop {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?  @db.Text
+  phone       String?
+  email       String?
+  website     String?
+  imageUrl    String?
+  rating      Float?   @default(0)
+  reviewCount Int      @default(0)
+  isVerified  Boolean  @default(false)
+  isFeatured  Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Address (inline for query performance)
+  street    String
+  city      String
+  state     String
+  zip       String
+  country   String  @default("US")
+  latitude  Float?
+  longitude Float?
+
+  // Relations
+  services    ShopService[]
+  bikeTypes   ShopBikeType[]
+  brands      ShopBrand[]
+  accessories ShopAccessory[]
+  favorites   Favorite[]
+  claims      Claim[]
+
+  @@index([city, state])
+  @@index([zip])
+  @@index([isFeatured])
+  @@index([slug])
+}
+
+model Service {
+  id    String        @id @default(cuid())
+  name  String        @unique
+  slug  String        @unique
+  shops ShopService[]
+}
+
+model BikeType {
+  id    String         @id @default(cuid())
+  name  String         @unique
+  slug  String         @unique
+  shops ShopBikeType[]
+}
+
+model Brand {
+  id    String      @id @default(cuid())
+  name  String      @unique
+  slug  String      @unique
+  shops ShopBrand[]
+}
+
+model AccessoryType {
+  id    String          @id @default(cuid())
+  name  String          @unique
+  slug  String          @unique
+  shops ShopAccessory[]
+}
+
+// Join tables
+model ShopService {
+  shop      Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId    String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId String
+
+  @@id([shopId, serviceId])
+}
+
+model ShopBikeType {
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId     String
+  bikeType   BikeType @relation(fields: [bikeTypeId], references: [id], onDelete: Cascade)
+  bikeTypeId String
+
+  @@id([shopId, bikeTypeId])
+}
+
+model ShopBrand {
+  shop    Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId  String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId String
+
+  @@id([shopId, brandId])
+}
+
+model ShopAccessory {
+  shop            Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId          String
+  accessoryType   AccessoryType @relation(fields: [accessoryTypeId], references: [id], onDelete: Cascade)
+  accessoryTypeId String
+
+  @@id([shopId, accessoryTypeId])
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  isAdmin   Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  favorites Favorite[]
+  claims    Claim[]
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  sessionId String?  // For non-auth favorites
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId    String
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@unique([sessionId, shopId])
+  @@unique([userId, shopId])
+}
+
+model Claim {
+  id          String      @id @default(cuid())
+  shop        Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId      String
+  user        User?       @relation(fields: [userId], references: [id])
+  userId      String?
+  claimantName  String
+  claimantEmail String
+  claimantPhone String?
+  message     String?     @db.Text
+  status      ClaimStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([shopId])
+  @@index([status])
+}
+
+enum ClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
