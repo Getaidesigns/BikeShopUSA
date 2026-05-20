@@ -43,9 +43,11 @@ export async function GET(req: NextRequest) {
     const brandFilters = toArray(params.brands);
 
     // Build AND-combined filter
-    const where: Parameters<typeof prisma.shop.findMany>[0]["where"] = {
-      isActive: true,
-    };
+    import { Prisma } from "@prisma/client";
+
+	const where: Prisma.ShopWhereInput = {
+	isActive: true,
+	};
 
     // Text search
     if (params.q) {
