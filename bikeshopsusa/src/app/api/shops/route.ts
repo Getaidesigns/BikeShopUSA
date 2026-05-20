@@ -1,9 +1,20 @@
 // src/app/api/shops/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { toArray } from "@/lib/utils";
 import { z } from "zod";
 
+const where: Prisma.ShopWhereInput = {
+  isActive: true,
+  ...(category && { category }),
+  ...(search && {
+    name: {
+      contains: search,
+      mode: "insensitive",
+    },
+  }),
+};
 const querySchema = z.object({
   q: z.string().optional(),
   city: z.string().optional(),
